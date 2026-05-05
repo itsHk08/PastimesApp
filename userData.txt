@@ -1,0 +1,5 @@
+John Doe,j.doe@abc.co.za,johndoe,12345678
+Jane Smith,jane@gmail.com,janesmith,87654321
+Mike Brown,mike@yahoo.com,mikeb,pass1234
+Lisa White,lisa@gmail.com,lisaw,abc12345
+Tom Black,tom@gmail.com,tomb,xyz98765
