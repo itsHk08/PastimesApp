@@ -9,6 +9,7 @@ $message = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $user_id = $_POST["user_id"];
+    $brand = $_POST["brand"];
     $name = $_POST["name"];
     $description = $_POST["description"];
     $price = $_POST["price"];
@@ -16,19 +17,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // IMAGE UPLOAD
     $imageName = $_FILES["image"]["name"];
     $tempName = $_FILES["image"]["tmp_name"];
-    $folder = "images/" . $imageName;
+    $folder = "images/" . basename($imageName);
 
-    move_uploaded_file($tempName, $folder);
+    if (move_uploaded_file($tempName, $folder)) {
 
-    // INSERT WITH IMAGE
-    $stmt = $conn->prepare("INSERT INTO tblClothes (user_id, name, description, price, image) VALUES (?, ?, ?, ?, ?)");
+       $stmt = $conn->prepare("
+INSERT INTO tblClothes
+(user_id,name,description,price,image,brand,status)
+VALUES (?,?,?,?,?,?,?)
+");
 
-    $stmt->bind_param("issds", $user_id, $name, $description, $price, $folder);
+       $status = "Pending";
 
-    if ($stmt->execute()) {
-        $message = "Item uploaded successfully!";
+$stmt->bind_param(
+"issdsss",
+$user_id,
+$name,
+$description,
+$price,
+$folder,
+$brand,
+$status
+);
+
+        if ($stmt->execute()) {
+            $message = "Your clothing item has been submitted for administrator approval.";
+        } else {
+            $message = "Database Error: " . $stmt->error;
+        }
+
+        $stmt->close();
+
     } else {
-        $message = "Error: " . $stmt->error;
+        $message = "Image upload failed.";
     }
 }
 ?>
@@ -37,33 +58,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html>
 <head>
     <title>Upload Clothes</title>
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
-<h2>Upload Clothes</h2>
+<?php include 'navbar.php'; ?>
 
-<form method="POST" enctype="multipart/form-data">
+<div class="container">
 
-User ID:<br>
-<input type="number" name="user_id" required><br><br>
+    <h2>Upload Clothing Item</h2>
 
-Item Name:<br>
-<input type="text" name="name" required><br><br>
+    <?php
+    if (!empty($message)) {
+        echo "<p><strong>$message</strong></p>";
+    }
+    ?>
 
-Description:<br>
-<textarea name="description" required></textarea><br><br>
+    <form method="POST" enctype="multipart/form-data">
 
-Price:<br>
-<input type="number" step="0.01" name="price" required><br><br>
+        <label>User ID</label><br>
+        <input type="number" name="user_id" required><br><br>
 
-Image:<br>
-<input type="file" name="image" required><br><br>
+        <label>Brand</label><br>
+        <input type="text" name="brand" placeholder="Nike, Adidas, Puma..." required><br><br>
 
-<button type="submit">Upload</button>
+        <label>Item Name</label><br>
+        <input type="text" name="name" required><br><br>
 
-</form>
+        <label>Description</label><br>
+        <textarea name="description" rows="5" required></textarea><br><br>
 
-<p><?php echo $message; ?></p>
+        <label>Price (R)</label><br>
+        <input type="number" step="0.01" name="price" required><br><br>
+
+        <label>Select Image</label><br>
+        <input type="file" name="image" accept="image/*" required><br><br>
+
+        <button type="submit">Upload Item</button>
+
+    </form>
+
+</div>
 
 </body>
 </html>

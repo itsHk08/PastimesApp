@@ -4,72 +4,184 @@ session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-include 'DBConn.php';
+include "DBConn.php";
 
-// Fetch clothes + seller
-$sql = "SELECT tblClothes.*, tblUser.name AS seller 
-        FROM tblClothes 
-        JOIN tblUser ON tblClothes.user_id = tblUser.user_id";
+/*
+    Only display clothes that have been
+    approved by the administrator.
+*/
 
-$result = $conn->query($sql);
 
-if (!$result) {
-    die("Query error: " . $conn->error);
+
+$search = "";
+
+if (isset($_GET['search'])) {
+    $search = trim($_GET['search']);
+}
+
+if ($search != "") {
+
+    $stmt = $conn->prepare("
+        SELECT tblClothes.*, tblUser.name AS seller
+        FROM tblClothes
+        JOIN tblUser ON tblClothes.user_id = tblUser.user_id
+        WHERE
+        tblClothes.name LIKE ?
+        OR tblClothes.brand LIKE ?
+        OR tblClothes.description LIKE ?
+    ");
+
+    $like = "%".$search."%";
+
+    $stmt->bind_param("sss", $like, $like, $like);
+
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+} else {
+
+    $sql = "
+    SELECT tblClothes.*, tblUser.name AS seller
+    FROM tblClothes
+    JOIN tblUser
+    ON tblClothes.user_id = tblUser.user_id
+    ";
+
+    $result = $conn->query($sql);
+
 }
 ?>
 
 <!DOCTYPE html>
+
 <html>
+
 <head>
-    <title>Shop - Pastimes</title>
-    <link rel="stylesheet" href="style.css">
+
+    <title>F!TZ Shop</title>
+
+    <link rel="stylesheet" href="style.css?v=3">
+
 </head>
+
 <body>
 
-<?php include 'navbar.php'; ?>
+<?php include "navbar.php"; ?>
+<div class="container">
 
-<h2>Available Clothes</h2>
+<form method="GET" class="search-bar">
+
+<input
+type="text"
+name="search"
+placeholder="Search clothing, brand or description..."
+value="<?php echo htmlspecialchars($search); ?>">
+
+<button type="submit">
+
+Search
+
+</button>
+
+</form>
+
+</div>
 
 <div class="container">
+
+<h2>Shop Clothing</h2>
+
 <div class="grid">
 
 <?php
-if ($result->num_rows > 0) {
 
-    while ($row = $result->fetch_assoc()) {
+if($result->num_rows>0){
 
-        echo "<div class='card'>";
+while($row=$result->fetch_assoc()){
 
-        // Image
-        echo "<img src='" . $row['image'] . "' alt='Clothing Image'>";
+?>
 
-        // Name
-        echo "<h3>" . htmlspecialchars($row['name']) . "</h3>";
+<div class="card">
 
-        // Description
-        echo "<p>" . htmlspecialchars($row['description']) . "</p>";
+<img
+src="<?php echo htmlspecialchars($row['image']); ?>"
+alt="Clothing">
 
-        // Price
-        echo "<p class='price'>R" . htmlspecialchars($row['price']) . "</p>";
+<h4>
 
-        // Seller
-        echo "<p><small>Seller: " . htmlspecialchars($row['seller']) . "</small></p>";
+<?php echo htmlspecialchars($row['brand']); ?>
 
-        // Add to Cart
-        echo "<a class='btn' href='cart.php?add=" . $row['clothes_id'] . "'>
-                Add to Cart
-              </a>";
+</h4>
 
-        echo "</div>";
-    }
+<h3>
 
-} else {
-    echo "<p style='text-align:center;'>No clothes available</p>";
+<?php echo htmlspecialchars($row['name']); ?>
+
+</h3>
+
+<p>
+
+<?php echo htmlspecialchars($row['description']); ?>
+
+</p>
+
+<p class="price">
+
+R<?php echo number_format($row['price'],2); ?>
+
+</p>
+
+<p>
+
+<strong>Seller:</strong>
+
+<?php echo htmlspecialchars($row['seller']); ?>
+
+</p>
+
+<br>
+
+<a
+class="btn"
+href="cart.php?add=<?php echo $row['clothes_id']; ?>">
+
+Add to Cart
+
+</a>
+
+</div>
+
+<?php
+
 }
+
+}else{
+
+?>
+
+<div class="card">
+
+<h3>No Products Available</h3>
+
+<p>
+
+There are currently no approved clothing items available.
+
+</p>
+
+</div>
+
+<?php
+
+}
+
 ?>
 
 </div>
+
 </div>
 
 </body>
+
 </html>

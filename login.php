@@ -1,7 +1,10 @@
 <?php
+session_start();
+
+
+
 include 'DBConn.php';
 
-$username = "";
 $message = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -11,61 +14,102 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (!empty($username) && !empty($password)) {
 
-        $sql = "SELECT * FROM tblUser WHERE username='$username'";
-        $result = $conn->query($sql);
+        $stmt = $conn->prepare("SELECT * FROM tblUser WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
 
-        if ($result->num_rows > 0) {
+        $result = $stmt->get_result();
+
+        if ($result->num_rows == 1) {
 
             $row = $result->fetch_assoc();
 
-            // Verify hashed password
             if (password_verify($password, $row['password'])) {
 
-                // Check if verified
-                if ($row['isVerified'] == 1) {
-                    $message = "User " . $row['name'] . " is logged in";
+                if ($row['isVerified'] == 0) {
+
+                    $message = "Your account has not been verified by the administrator yet.";
+
                 } else {
-                    $message = "Account not verified. Please wait for admin approval.";
+
+                    $_SESSION['user_id'] = $row['user_id'];
+                    $_SESSION['name'] = $row['name'];
+                    $_SESSION['username'] = $row['username'];
+                    $_SESSION['role'] = $row['role'];
+
+                    if ($row['role'] == "admin") {
+    die("Role is admin");
+} else {
+    die("Role is customer");
+}
                 }
 
             } else {
+
                 $message = "Incorrect password.";
+
             }
 
         } else {
-            $message = "User not found. Please register.";
+
+            $message = "User not found.";
+
         }
 
     } else {
-        $message = "Please fill in all fields.";
+
+        $message = "Please complete all fields.";
+
     }
+
 }
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Login</title>
-    <link rel="stylesheet" href="style.css">
+
+    <title>Login - Pastimes</title>
+
+    <link rel="stylesheet" href="style.css?v=3">
+
 </head>
+
 <body>
+
 <?php include 'navbar.php'; ?>
+
+<div class="container">
+
 <h2>Login</h2>
 
 <form method="POST">
 
-    Username:<br>
-    <input type="text" name="username" required 
-           value="<?php echo htmlspecialchars($username); ?>"><br><br>
+<label>Username</label>
 
-    Password:<br>
-    <input type="password" name="password" required><br><br>
+<input type="text" name="username" required>
 
-    <button type="submit">Login</button>
+<label>Password</label>
+
+<input type="password" name="password" required>
+
+<button type="submit">Login</button>
 
 </form>
 
-<p><?php echo $message; ?></p>
+<?php
+
+if($message!=""){
+
+    echo "<p style='text-align:center;color:red;font-weight:bold;'>$message</p>";
+
+}
+
+?>
+
+</div>
 
 </body>
+
 </html>

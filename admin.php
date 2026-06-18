@@ -1,72 +1,117 @@
 <?php
+session_start();
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-include 'DBConn.php';
-
-// VERIFY USER WHEN BUTTON CLICKED
-if (isset($_GET['verify'])) {
-    $id = $_GET['verify'];
-
-    $conn->query("UPDATE tblUser SET isVerified = 1 WHERE user_id = $id");
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != "admin") {
+    header("Location: login.php");
+    exit();
 }
 
-// GET ALL USERS
-$result = $conn->query("SELECT * FROM tblUser");
+include "DBConn.php";
+
+// Dashboard statistics
+$totalUsers = $conn->query("SELECT COUNT(*) AS total FROM tblUser")->fetch_assoc()['total'];
+
+$totalClothes = $conn->query("SELECT COUNT(*) AS total FROM tblClothes")->fetch_assoc()['total'];
+
+$verifiedUsers = $conn->query("SELECT COUNT(*) AS total FROM tblUser WHERE isVerified=1")->fetch_assoc()['total'];
+
+$pendingUsers = $conn->query("SELECT COUNT(*) AS total FROM tblUser WHERE isVerified=0")->fetch_assoc()['total'];
+
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Admin Panel</title>
-    <link rel="stylesheet" href="style.css">
+
+<title>Administrator Dashboard</title>
+
+<link rel="stylesheet" href="style.css?v=3">
+
 </head>
+
 <body>
-<?php include 'navbar.php'; ?>
 
-<h2>Admin Panel - User Verification</h2>
+<?php include "navbar.php"; ?>
 
-<table border="1" cellpadding="10">
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Username</th>
-        <th>Status</th>
-        <th>Action</th>
-    </tr>
+<div class="container">
 
-    <?php while ($row = $result->fetch_assoc()) { ?>
-        <tr>
-            <td><?php echo $row['user_id']; ?></td>
-            <td><?php echo $row['name']; ?></td>
-            <td><?php echo $row['email']; ?></td>
-            <td><?php echo $row['username']; ?></td>
+<h1>Administrator Dashboard</h1>
 
-            <td>
-                <?php 
-                if ($row['isVerified'] == 1) {
-                    echo "Verified";
-                } else {
-                    echo "Not Verified";
-                }
-                ?>
-            </td>
+<div class="grid">
 
-            <td>
-                <?php if ($row['isVerified'] == 0) { ?>
-                    <a href="admin.php?verify=<?php echo $row['user_id']; ?>">
-                        Verify
-                    </a>
-                <?php } else { ?>
-                    ✔
-                <?php } ?>
-            </td>
-        </tr>
-    <?php } ?>
+<div class="card">
+<h2>Total Users</h2>
+<h1><?php echo $totalUsers; ?></h1>
+</div>
 
-</table>
+<div class="card">
+<h2>Total Clothes</h2>
+<h1><?php echo $totalClothes; ?></h1>
+</div>
+
+<div class="card">
+<h2>Verified Users</h2>
+<h1><?php echo $verifiedUsers; ?></h1>
+</div>
+
+<div class="card">
+<h2>Pending Users</h2>
+<h1><?php echo $pendingUsers; ?></h1>
+</div>
+
+</div>
+
+<br>
+
+<div class="grid">
+
+<div class="card">
+
+<h2>Manage Users</h2>
+
+<p>Edit, verify and remove users.</p>
+
+<a class="btn" href="users.php">
+
+Open
+
+</a>
+
+</div>
+
+<div class="card">
+
+<h2>Verify Users</h2>
+
+<p>Approve newly registered users.</p>
+
+<a class="btn" href="verifyUsers.php">
+
+Open
+
+</a>
+
+</div>
+
+<div class="card">
+
+<h2>Manage Clothes</h2>
+
+<p>Edit and remove clothing items.</p>
+
+<a class="btn" href="clothes.php">
+
+Open
+
+</a>
+
+</div>
+
+</div>
+
+</div>
 
 </body>
+
 </html>
